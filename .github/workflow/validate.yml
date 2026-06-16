@@ -1,0 +1,48 @@
+name: Validate Java Solution
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  test-and-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Run Tests
+        id: tests
+        run: mvn test
+        continue-on-error: true
+
+      - name: Create Report
+        run: |
+          echo "# Test Execution Report" > RESULT.md
+          echo "" >> RESULT.md
+          echo "Execution Time: $(date -u)" >> RESULT.md
+          echo "" >> RESULT.md
+
+          if [ "${{ steps.tests.outcome }}" = "success" ]; then
+            echo "Status: PASS" >> RESULT.md
+          else
+            echo "Status: FAIL" >> RESULT.md
+          fi
+
+      - name: Commit Report
+        run: |
+          git config user.name "minato500"
+          git config user.email "github-actions@github.com"
+          git add RESULT.md
+          git commit -m "Update test report" || echo "No changes"
+          git push
